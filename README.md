@@ -7,7 +7,9 @@
 
 A dumb script... but useful!
 
-## Example - Your repos
+## Example 
+
+### Personal repos
 
 To grab a file from any branch of any of your repos, just run
 
@@ -16,7 +18,7 @@ ghspear
 ```
 You are prompted to interactively chose the repo, branch, then file. 
 
-## Example - Other users 
+### Other user repos 
 
 Say you wanted to grab a file from the user `ziglang`, use the `-o` flag:
 
@@ -30,7 +32,7 @@ You can specify a repo if you already know it (skips picking the repo).
 ghspear -o ziglang/zig
 ```
 
-## Example - view on web
+### View on web instead of download file
 To open to the file in GitHub via your browser, use the `-w` flag:
 
 ```terminal
