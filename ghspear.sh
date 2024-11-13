@@ -1,0 +1,103 @@
+#!/bin/bash
+
+# Default settings
+OPEN_IN_BROWSER=false
+OWNER=""
+REPO=""
+
+# Process arguments
+while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+        -w)
+            OPEN_IN_BROWSER=true
+            shift  # Remove the flag from arguments
+            ;;
+        -o)
+            if [[ -n "$2" ]]; then
+                OWNER="$2"
+                shift 2  # Remove both the flag and the owner argument
+            else
+                echo "Error: -o requires an argument."
+                exit 1
+            fi
+            ;;
+        -h)
+            echo "Usage: ghspear [-w view on web instead of download] [-o <owner> search repos or owner/repo directly]"
+            exit 1
+            ;;
+        *)
+            echo "Unknown option: $1"
+            exit 1
+            ;;
+    esac
+done
+
+# Determine repository
+echo ""
+echo "View or Download a file from GitHub Repos"
+echo ""
+if [[ "$OWNER" == */* ]]; then
+    # If OWNER contains a "/", treat it as the full owner/repo identifier
+    REPO="$OWNER"
+    echo "Using specified repository: $REPO"
+else
+    # Otherwise, fetch and select from the owner's repositories
+    echo "Fetching repository list..."
+    if [[ -z "$OWNER" ]]; then
+        # Default to listing personal repositories
+        REPO=$(gh repo list --limit 2000 --json nameWithOwner -q '.[].nameWithOwner' | \
+        fzf --height 60% --border --padding=1% --reverse --prompt="Select a repository: ")
+    else
+        # List repositories for the specified owner
+        REPO=$(gh repo list "$OWNER" --limit 2000 --json nameWithOwner -q '.[].nameWithOwner' | \
+        fzf --height 60% --border --padding=1% --reverse --prompt="Select a repository: ")
+    fi
+
+    if [[ -z "$REPO" ]]; then
+        echo "No repository selected."
+        exit 1
+    fi
+fi
+echo "Selected repository: $REPO"
+
+# List branches for the selected repo and pick one
+echo "Fetching branches for repository $REPO..."
+BRANCHES_JSON=$(gh api -H "Accept: application/vnd.github.v3+json" "/repos/$REPO/branches")
+
+BRANCH=$(echo "$BRANCHES_JSON" | jq -r '.[].name' | \
+fzf --height 80% --border --padding=1% --reverse --prompt="Select a branch: ")
+
+if [[ -z "$BRANCH" ]]; then
+    echo "No branch selected."
+    exit 1
+fi
+echo "Selected branch: $BRANCH"
+
+# List files in the branch and pick one
+echo "Fetching file tree for branch $BRANCH in repository $REPO..."
+FILES_JSON=$(gh api -H "Accept: application/vnd.github.v3+json" "/repos/$REPO/git/trees/$BRANCH?recursive=1")
+
+FILE=$(echo "$FILES_JSON" | jq -r '.tree[] | select(.type == "blob") | .path' | \
+fzf --height 80% --border --padding=1% --reverse --prompt="Select a file: ")
+if [[ -z "$FILE" ]]; then
+    echo "No file selected."
+    exit 1
+fi
+echo "Selected file: $FILE"
+
+# Download or open the file content
+if [[ "$OPEN_IN_BROWSER" == true ]]; then
+    # Open file in browser
+    echo "Opening $FILE in the web browser..."
+    FILE_URL="https://github.com/$REPO/blob/$BRANCH/$FILE"
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        open "$FILE_URL" 
+    else
+        xdg-open "$FILE_URL"
+    fi
+else
+    # Download the file content
+    echo "Downloading $FILE from $REPO (branch: $BRANCH)..."
+    gh api -H "Accept: application/vnd.github.v3.raw" "/repos/$REPO/contents/$FILE?ref=$BRANCH" > "$(basename "$FILE")"
+    echo "File saved as $(basename "$FILE")"
+fi
