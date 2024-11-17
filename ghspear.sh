@@ -1,4 +1,31 @@
-#!/bin/bash
+#########################################################################################
+# Script Name:   ghspear
+# Description:   This script allows users to interactively view or download 
+#                files from GitHub repositories. Users can select repositories, 
+#                branches, and files using fuzzy finding (fzf).
+#
+# Usage:         ghspear [-w] [-o <owner>] [-h]
+#
+# Options:
+#   -w               Open the selected file in a web browser instead of downloading it.
+#   -o <owner>       Specify the owner or owner/repo directly for repository selection.
+#   -h               Display this help message and exit.
+#
+# Examples:
+#   ghspear -w -o myusername
+#   ghspear -o myusername/myrepo
+#   ghspear
+#
+# Author:        pwhybra
+# Version:       1.0
+#
+# Dependencies:  - gh: GitHub CLI.
+#                - jq: For JSON parsing.
+#                - fzf: For fuzzy finding.
+#
+# Notes:         - Ensure you are authenticated with GitHub CLI (`gh auth login`).
+#########################################################################################
+
 
 # Default settings
 OPEN_IN_BROWSER=false
@@ -22,7 +49,8 @@ while [[ "$#" -gt 0 ]]; do
             fi
             ;;
         -h)
-            echo "Usage: ghspear [-w view on web instead of download] [-o <owner> search repos or owner/repo directly]"
+            echo "Usage: ghspear [-w view on web instead of download]\
+             [-o <owner> search repos or owner/repo directly]"
             exit 1
             ;;
         *)
