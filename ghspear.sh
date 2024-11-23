@@ -66,7 +66,7 @@ done
 
 # Determine repository and branch if provided
 echo ""
-echo "View or Download a file from GitHub Repos"
+echo "View or Download a file from a GitHub repo"
 echo ""
 
 if [[ "$OWNER" == */* ]]; then
@@ -121,33 +121,40 @@ if [[ -z "$BRANCH" ]]; then
     echo "Selected branch: $BRANCH"
 fi
 
-# List files in the branch and pick one
+# List files in the branch and pick one or more
 echo "Fetching file tree for branch $BRANCH in repository $REPO..."
 FILES_JSON=$(gh api -H "Accept: application/vnd.github.v3+json" \
 "/repos/$REPO/git/trees/$BRANCH?recursive=1")
 
-FILE=$(echo "$FILES_JSON" | jq -r '.tree[] | select(.type == "blob") | .path' | \
-fzf --height 80% --border --padding=1% --reverse --prompt="Select a file: ")
-if [[ -z "$FILE" ]]; then
-    echo "No file selected."
+# Use fzf with --multi to allow selecting multiple files
+FILES=$(echo "$FILES_JSON" | jq -r '.tree[] | select(.type == "blob") | .path' | \
+fzf --multi --height 80% --border --padding=1% --reverse --prompt="Select file(s): ")
+
+if [[ -z "$FILES" ]]; then
+    echo "No files selected."
     exit 1
 fi
-echo "Selected file: $FILE"
 
-# Download or open the file content
-if [[ "$OPEN_IN_BROWSER" == true ]]; then
-    # Open file in browser
-    echo "Opening $FILE in the web browser..."
-    FILE_URL="https://github.com/$REPO/blob/$BRANCH/$FILE"
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        open "$FILE_URL" # macos
+# Loop through each selected file and download or open it
+echo "Selected file(s):"
+echo "$FILES"
+
+IFS=$'\n' # Split FILES on newlines
+for FILE in $FILES; do
+    if [[ "$OPEN_IN_BROWSER" == true ]]; then
+        # Open file in browser
+        echo "Opening $FILE in the web browser..."
+        FILE_URL="https://github.com/$REPO/blob/$BRANCH/$FILE"
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            open "$FILE_URL" # macos
+        else
+            xdg-open "$FILE_URL" # linux
+        fi
     else
-        xdg-open "$FILE_URL" # linux
+        # Download the file content
+        echo "Downloading $FILE from $REPO (branch: $BRANCH)..."
+        gh api -H "Accept: application/vnd.github.v3.raw" \
+        "/repos/$REPO/contents/$FILE?ref=$BRANCH" > "$(basename "$FILE")"
+        echo "File saved as $(basename "$FILE")"
     fi
-else
-    # Download the file content
-    echo "Downloading $FILE from $REPO (branch: $BRANCH)..."
-    gh api -H "Accept: application/vnd.github.v3.raw" \
-    "/repos/$REPO/contents/$FILE?ref=$BRANCH" > "$(basename "$FILE")"
-    echo "File saved as $(basename "$FILE")"
-fi
+done
