@@ -102,7 +102,7 @@ echo "Selected repository: $REPO"
 # List branches for the selected repo and pick one
 echo "Fetching branches for repository $REPO..."
 BRANCHES_JSON=$(gh api -H \
-"Accept: application/vnd.github.v3+json" "/repos/$REPO/branches")
+"Accept: application/vnd.github.v3+json" "/repos/$REPO/branches?per_page=100")
 
 BRANCH=$(echo "$BRANCHES_JSON" | jq -r '.[].name' | \
 fzf --height 80% --border --padding=1% --reverse --prompt="Select a branch: ")
