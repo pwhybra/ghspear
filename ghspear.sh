@@ -8,13 +8,14 @@
 #
 # Options:
 #   -w <web>         Open the selected file in a web browser instead of downloading it.
-#   -o <owner>       Specify the owner or owner/repo directly for repository selection.
+#   -o <owner>       Specify the owner, owner/repo, or owner/repo/branch directly.
 #   -h <help>        Display this help message and exit.
 #
 # Examples:
 #   ghspear
 #   ghspear -w -o <username>
 #   ghspear -o <username>/<repo>
+#   ghspear -o <username>/<repo>/<branch>
 #
 # Author:        pwhybra
 # Repo:          https://github.com/pwhybra/ghspear
@@ -28,11 +29,11 @@
 #                - If you find it useful let me know with a repo star :)
 ########################################################################################
 
-
 # Default settings
 OPEN_IN_BROWSER=false
 OWNER=""
 REPO=""
+BRANCH=""
 LIMIT=2000
 
 # Process arguments
@@ -53,7 +54,7 @@ while [[ "$#" -gt 0 ]]; do
             ;;
         -h)
             echo "Usage: ghspear [-w view on web instead of download]\
-             [-o <owner> search repos or owner/repo directly]"
+             [-o <owner/repo/branch> search repos or owner/repo directly]"
             exit 1
             ;;
         *)
@@ -63,16 +64,21 @@ while [[ "$#" -gt 0 ]]; do
     esac
 done
 
-# Determine repository
+# Determine repository and branch if provided
 echo ""
 echo "View or Download a file from GitHub Repos"
 echo ""
+
 if [[ "$OWNER" == */* ]]; then
-    # If OWNER contains a "/", treat it as the full owner/repo identifier
-    REPO="$OWNER"
+    # Split OWNER into REPO and optionally BRANCH
+    REPO=$(echo "$OWNER" | cut -d'/' -f1-2)
+    BRANCH=$(echo "$OWNER" | cut -d'/' -f3)
     echo "Using specified repository: $REPO"
+    if [[ -n "$BRANCH" ]]; then
+        echo "Using specified branch: $BRANCH"
+    fi
 else
-    # Otherwise, fetch and select from the owner's repositories
+    # Fetch and select from the owner's repositories
     echo "Fetching repository list..."
     if [[ -z "$OWNER" ]]; then
         # Default to listing personal repositories
@@ -96,22 +102,24 @@ else
         echo "No repository selected."
         exit 1
     fi
+    echo "Selected repository: $REPO"
 fi
-echo "Selected repository: $REPO"
 
-# List branches for the selected repo and pick one
-echo "Fetching branches for repository $REPO..."
-BRANCHES_JSON=$(gh api -H \
-"Accept: application/vnd.github.v3+json" "/repos/$REPO/branches?per_page=100")
-
-BRANCH=$(echo "$BRANCHES_JSON" | jq -r '.[].name' | \
-fzf --height 80% --border --padding=1% --reverse --prompt="Select a branch: ")
-
+# If no branch was provided, list branches for the selected repo and pick one
 if [[ -z "$BRANCH" ]]; then
-    echo "No branch selected."
-    exit 1
+    echo "Fetching branches for repository $REPO..."
+    BRANCHES_JSON=$(gh api -H \
+    "Accept: application/vnd.github.v3+json" "/repos/$REPO/branches?per_page=100")
+
+    BRANCH=$(echo "$BRANCHES_JSON" | jq -r '.[].name' | \
+    fzf --height 80% --border --padding=1% --reverse --prompt="Select a branch: ")
+
+    if [[ -z "$BRANCH" ]]; then
+        echo "No branch selected."
+        exit 1
+    fi
+    echo "Selected branch: $BRANCH"
 fi
-echo "Selected branch: $BRANCH"
 
 # List files in the branch and pick one
 echo "Fetching file tree for branch $BRANCH in repository $REPO..."
