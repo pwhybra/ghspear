@@ -3,9 +3,9 @@
 
 # ghspear
 
-> Interactively grab/view any file, from any branch, from any repo (you can access..) on GitHub.
+> Interactively grab/view any file, from any branch, from any repo (you can access..)
+> on GitHub.
 
-A dumb script... but useful!
 
 ## Example 
 
@@ -40,8 +40,9 @@ ghspear -w -o ziglang
 ```
 
 ## Requirements
-- `gh`
-- `fzf`
+- [`gh`](https://cli.github.com/)
+- [`fzf`](https://github.com/junegunn/fzf)
+- [`jq`](https://jqlang.github.io/jq/) (often already installed.)
 
 Assumes you have already setup GitHub's CLI `gh`.
 
