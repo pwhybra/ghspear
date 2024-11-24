@@ -112,7 +112,7 @@ if [[ -z "$BRANCH" ]]; then
     "Accept: application/vnd.github.v3+json" "/repos/$REPO/branches?per_page=100")
 
     BRANCH=$(echo "$BRANCHES_JSON" | jq -r '.[].name' | \
-    fzf --height 80% --border --padding=1% --reverse --prompt="Select a branch: ")
+    fzf --height 60% --border --padding=1% --reverse --prompt="Select a branch: ")
 
     if [[ -z "$BRANCH" ]]; then
         echo "No branch selected."
