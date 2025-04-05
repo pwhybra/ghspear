@@ -4,11 +4,12 @@
 # Description:   Interactively view or download files from GitHub repositories. Users
 #                can select repositories, branches, and files using fuzzy finding (fzf).
 #
-# Usage:         ghspear [-w] [-o <owner>] [-h]
+# Usage:         ghspear [-w] [-o <owner>] [-j] [-h]
 #
 # Options:
 #   -w <web>         Open the selected file in a web browser instead of downloading it.
 #   -o <owner>       Specify the owner, owner/repo, or owner/repo/branch directly.
+#   -j <just>        Quick option to just open repo in web browser.
 #   -h <help>        Display this help message and exit.
 #
 # Examples:
@@ -35,6 +36,7 @@ OWNER=""
 REPO=""
 BRANCH=""
 LIMIT=2000
+GO_TO_REPO=false
 
 # Process arguments
 while [[ "$#" -gt 0 ]]; do
@@ -52,9 +54,26 @@ while [[ "$#" -gt 0 ]]; do
                 exit 1
             fi
             ;;
+        -j) 
+            GO_TO_REPO=true
+            shift  # Remove the flag from arguments
+            ;;
+
         -h)
-            echo "Usage: ghspear [-w view on web instead of download]\
-             [-o <owner/repo/branch> search repos or owner/repo directly]"
+            echo "Usage: ghspear [options]"
+            echo ""
+            echo "Options:"
+            echo "  -w   Open selected file in a web browser instead of downloading it."
+            echo "  -o   Specify the owner, owner/repo, or owner/repo/branch directly."
+            echo "  -j   Quick option to just open the repo in web browser."
+            echo "  -h   Display this help message and exit."
+            echo ""
+            echo "Example usage:"
+            echo "  ghspear "
+            echo "  ghspear -o <username>"
+            echo "  ghspear -o <username>/<repo>/<branch>"
+            echo "  ghspear -w -o <username>"
+            echo "  ghspear -j <username>"
             exit 1
             ;;
         *)
@@ -103,6 +122,11 @@ else
         exit 1
     fi
     echo "Selected repository: $REPO"
+fi
+
+if [[ "$GO_TO_REPO" == true ]]; then
+    gh repo view $REPO --web
+    exit 
 fi
 
 # If no branch was provided, list branches for the selected repo and pick one
